@@ -200,7 +200,7 @@
 
     <section class="panel">
       <div class="panel-head">
-          <div><h2>Notes que consiguieron suscriptores · solo propias</h2><p class="sub" id="conversion-note">Nuevos suscriptores atribuidos por Substack a una Note propia concreta.</p></div>
+          <div><h2>Notes que consiguieron suscriptores</h2><p class="sub" id="conversion-note">Todas las fuentes de Notes con suscriptores atribuidos, sean propias o externas.</p></div>
         <span class="pill">ATRIBUCIÓN DIRECTA</span>
       </div>
       <div class="table-wrap"><table><thead><tr><th>Note / origen</th><th>Suscriptores</th><th>% del canal Notes</th><th>Fecha activa</th></tr></thead><tbody id="notes-conversion"></tbody></table></div>
@@ -448,8 +448,7 @@ window.THINK_HACK_NOTES_DATA = {"meta":{"generatedAt":"2026-08-21T05:09:45.918Z"
     }
 
     function renderConversionTable(growth) {
-      const noteRows = growth.filter((row) => row.isOwnNote && row.subscribers > 0);
-      const externalRows = growth.filter((row) => row.isNotes && !row.isOwnNote && row.subscribers > 0);
+      const noteRows = growth.filter((row) => row.isNotes && row.subscribers > 0);
       const grouped = new Map();
       noteRows.forEach((row) => {
         const item = grouped.get(row.source) || { source: row.source, subscribers: 0, first: row.date, last: row.date };
@@ -460,9 +459,10 @@ window.THINK_HACK_NOTES_DATA = {"meta":{"generatedAt":"2026-08-21T05:09:45.918Z"
       });
       const rows = [...grouped.values()].sort((a, b) => b.subscribers - a.subscribers || b.last.localeCompare(a.last));
       const total = sum(noteRows, "subscribers");
-      const externalSubscribers = sum(externalRows, "subscribers");
-      document.querySelector("#conversion-note").textContent = `Solo Notes publicadas por Aina Lluna. ${externalSubscribers ? `${fmt.format(externalSubscribers)} altas de menciones o restacks externos se conservan en los totales del canal, pero no aparecen en esta tabla.` : "No hay altas externas en este periodo."}`;
-      document.querySelector("#notes-conversion").innerHTML = rows.length ? rows.map((row) => `<tr><td class="item-title"><span class="item-copy">${escapeHtml(noteText(row.source))}</span><span class="item-meta">Note propia</span></td><td><strong>${fmt.format(row.subscribers)}</strong></td><td>${total ? pct.format(row.subscribers / total * 100) : 0}%</td><td>${escapeHtml(row.first === row.last ? row.first : `${row.first} → ${row.last}`)}</td></tr>`).join("") : '<tr><td colspan="4" class="empty">No hay altas atribuidas a Notes propias en este periodo.</td></tr>';
+      const ownSubscribers = sum(noteRows.filter((row) => row.isOwnNote), "subscribers");
+      const externalSubscribers = total - ownSubscribers;
+      document.querySelector("#conversion-note").textContent = `Todas las fuentes de Notes con altas atribuidas: ${fmt.format(ownSubscribers)} desde Notes propias y ${fmt.format(externalSubscribers)} desde menciones o restacks externos.`;
+      document.querySelector("#notes-conversion").innerHTML = rows.length ? rows.map((row) => `<tr><td class="item-title"><span class="item-copy">${escapeHtml(noteText(row.source))}</span><span class="item-meta">${row.source.includes("Aina Lluna:") ? "Note propia" : "Mención o restack externo"}</span></td><td><strong>${fmt.format(row.subscribers)}</strong></td><td>${total ? pct.format(row.subscribers / total * 100) : 0}%</td><td>${escapeHtml(row.first === row.last ? row.first : `${row.first} → ${row.last}`)}</td></tr>`).join("") : '<tr><td colspan="4" class="empty">No hay altas atribuidas a Notes en este periodo.</td></tr>';
     }
 
     function renderEngagement(activities) {
